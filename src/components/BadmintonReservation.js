@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+
+const API_URL = 'https://badmindton-reservation-backend-48221d08d8e7.herokuapp.com/api'; 
 
 const BadmintonReservation = () => {
   const [name, setName] = useState('');
@@ -20,17 +23,43 @@ const BadmintonReservation = () => {
     '20:30 - 22:00'
   ];
 
-  const handleReservation = () => {
+  useEffect(() => {
+    fetchReservations();
+  }, []);
+
+  const fetchReservations = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/reservations`);
+      const reservationData = {};
+      response.data.forEach(reservation => {
+        reservationData[`${reservation.court}-${reservation.timeSlot}`] = {
+          name: reservation.name,
+          partyNames: reservation.partyNames
+        };
+      });
+      setReservations(reservationData);
+    } catch (error) {
+      console.error('Error fetching reservations:', error);
+    }
+  };
+
+  const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
-      const newReservation = {
-        ...reservations,
-        [`${selectedCourt}-${selectedTime}`]: { name, partyNames }
-      };
-      setReservations(newReservation);
-      setName('');
-      setPartyNames('');
-      setSelectedCourt(null);
-      setSelectedTime(null);
+      try {
+        await axios.post(`${API_URL}/reservations`, {
+          court: selectedCourt,
+          timeSlot: selectedTime,
+          name,
+          partyNames
+        });
+        await fetchReservations(); // Refresh reservations after creating a new one
+        setName('');
+        setPartyNames('');
+        setSelectedCourt(null);
+        setSelectedTime(null);
+      } catch (error) {
+        console.error('Error creating reservation:', error);
+      }
     }
   };
 
