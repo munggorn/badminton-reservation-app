@@ -102,100 +102,86 @@ const BadmintonReservation = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <div className="text-center mt-8">Loading...</div>;
   }
 
   return (
-    <div className="p-4 max-w-6xl mx-auto bg-gray-100 rounded-lg shadow-lg">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">Badminton Court Reservation</h1>
-      <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">Your Name:</label>
+    <div className="p-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Badminton Court Reservation</h1>
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="name" className="block mb-2">Your Name:</label>
           <input
             type="text"
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-2 border rounded"
             required
           />
         </div>
-        <div className="space-y-4">
-          <label htmlFor="partyNames" className="block text-sm font-medium text-gray-700">Party's Names:</label>
+        <div>
+          <label htmlFor="partyNames" className="block mb-2">Party's Names:</label>
           <textarea
             id="partyNames"
             value={partyNames}
             onChange={(e) => setPartyNames(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-2 border rounded"
             rows="3"
             required
           />
         </div>
       </div>
-      <div className="mt-10">
-        <h2 className="text-2xl font-semibold mb-4 text-center">Court Availability</h2>
-        <p className="mb-4 text-center text-gray-600">Click on an available slot to select it for reservation. Hover over reserved slots to see details.</p>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className="p-2 border bg-gray-200"></th>
-                {courts.map(court => (
-                  <th key={court._id} className="p-2 border bg-gray-200">Court {court.courtNumber}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {courts[0] && courts[0].slots.map(slot => (
-                <tr key={slot.startTime}>
-                  <td className="p-2 border font-bold text-sm">
-                    {new Date(slot.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </td>
-                  {courts.map(court => (
-                    <td
-                      key={`${court._id}-${slot.startTime}`}
-                      className={`p-2 border text-center cursor-pointer transition-colors duration-200 ${
-                        isReserved(court, slot)
-                          ? 'bg-red-200 hover:bg-red-300'
-                          : selectedCourt === court._id && selectedTime === slot.startTime
-                          ? 'bg-yellow-200 hover:bg-yellow-300'
-                          : 'bg-green-200 hover:bg-green-300'
-                      }`}
-                      onClick={() => handleCellClick(court, slot)}
-                      onMouseEnter={() => handleCellHover(court, slot)}
-                      onMouseLeave={() => setHoverInfo(null)}
-                    >
-                      {isReserved(court, slot) ? '🚫' : selectedCourt === court._id && selectedTime === slot.startTime ? '✅' : '🟢'}
-                    </td>
-                  ))}
-                </tr>
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Court Availability</h2>
+        <p className="mb-2">Click on an available slot to select it for reservation. Hover over reserved slots to see details.</p>
+        <div className="grid grid-cols-5 gap-2">
+          <div className="font-bold"></div>
+          {courts.map(court => (
+            <div key={court._id} className="font-bold text-center">Court {court.courtNumber}</div>
+          ))}
+          {courts[0] && courts[0].slots.map(slot => (
+            <React.Fragment key={slot.startTime}>
+              <div className="font-bold text-sm">{new Date(slot.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+              {courts.map(court => (
+                <div
+                  key={`${court._id}-${slot.startTime}`}
+                  className={`p-2 text-center cursor-pointer ${
+                    isReserved(court, slot)
+                      ? 'bg-red-300'
+                      : selectedCourt === court._id && selectedTime === slot.startTime
+                      ? 'bg-yellow-300'
+                      : 'bg-green-300 hover:bg-green-400'
+                  }`}
+                  onClick={() => handleCellClick(court, slot)}
+                  onMouseEnter={() => handleCellHover(court, slot)}
+                  onMouseLeave={() => setHoverInfo(null)}
+                >
+                  {isReserved(court, slot) ? 'R' : selectedCourt === court._id && selectedTime === slot.startTime ? 'Selected' : 'A'}
+                </div>
               ))}
-            </tbody>
-          </table>
+            </React.Fragment>
+          ))}
         </div>
       </div>
       {hoverInfo && (
-        <div className="mt-6 p-4 bg-white rounded-lg shadow-md">
-          <h3 className="font-bold text-lg mb-2">Reservation Details:</h3>
-          <p><span className="font-semibold">Court:</span> {hoverInfo.court.courtNumber}</p>
-          <p><span className="font-semibold">Time:</span> {new Date(hoverInfo.slot.startTime).toLocaleString()}</p>
-          <p><span className="font-semibold">Reserved by:</span> {hoverInfo.userName}</p>
-          <p><span className="font-semibold">Party:</span> {hoverInfo.partyNames}</p>
+        <div className="mt-4 p-4 bg-gray-100 rounded">
+          <h3 className="font-bold">Reservation Details:</h3>
+          <p>Court: {hoverInfo.court.courtNumber}</p>
+          <p>Time: {new Date(hoverInfo.slot.startTime).toLocaleString()}</p>
+          <p>Reserved by: {hoverInfo.userName}</p>
+          <p>Party: {hoverInfo.partyNames}</p>
         </div>
       )}
-      <div className="mt-8">
-        <p className="mb-4 text-center font-semibold">
+      <div className="mt-6">
+        <p className="mb-2">
           {selectedCourt && selectedTime 
             ? `Selected: Court ${courts.find(c => c._id === selectedCourt)?.courtNumber} at ${new Date(selectedTime).toLocaleString()}`
             : 'Please select a court and time from the visualization above'}
         </p>
         <button 
           onClick={handleReservation}
-          className={`w-full p-3 rounded-md transition-colors duration-200 ${
+          className={`w-full p-2 rounded ${
             name && partyNames && selectedCourt && selectedTime
               ? 'bg-blue-500 text-white hover:bg-blue-600'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -206,7 +192,7 @@ const BadmintonReservation = () => {
         </button>
       </div>
       {success && (
-        <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
+        <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
           Reservation successfully created!
         </div>
       )}
