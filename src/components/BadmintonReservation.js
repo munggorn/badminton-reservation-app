@@ -45,15 +45,6 @@ const BadmintonReservation = () => {
 
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
-      const newReservation = {
-        ...reservations,
-        [`${selectedCourt}-${selectedTime}`]: { name, partyNames }
-      };
-      setReservations(newReservation);
-      setName('');
-      setPartyNames('');
-      setSelectedCourt(null);
-      setSelectedTime(null);
       try {
         await axios.post(`${API_URL}/reservations`, {
           court: selectedCourt,
