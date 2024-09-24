@@ -27,24 +27,24 @@ const BadmintonReservation = () => {
     fetchReservations();
   }, []);
 
-const fetchReservations = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/reservations`);
-    const reservationData = {};
-    response.data.forEach(reservation => {
-      const startTime = new Date(reservation.startTime);
-      const endTime = new Date(reservation.endTime);
-      const timeSlot = `${startTime.getHours()}:${startTime.getMinutes().toString().padStart(2, '0')} - ${endTime.getHours()}:${endTime.getMinutes().toString().padStart(2, '0')}`;
-      reservationData[`${reservation.courtId}-${timeSlot}`] = {
-        name: reservation.userName,
-        partyNames: reservation.partyNames
-      };
-    });
-    setReservations(reservationData);
-  } catch (error) {
-    console.error('Error fetching reservations:', error);
-  }
-};
+  const fetchReservations = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/reservations`);
+      const reservationData = {};
+      response.data.forEach(reservation => {
+        const startTime = new Date(reservation.startTime);
+        const endTime = new Date(reservation.endTime);
+        const timeSlot = `${startTime.getHours()}:${startTime.getMinutes().toString().padStart(2, '0')} - ${endTime.getHours()}:${endTime.getMinutes().toString().padStart(2, '0')}`;
+        reservationData[`${reservation.courtId}-${timeSlot}`] = {
+          name: reservation.userName,
+          partyNames: reservation.partyNames
+        };
+      });
+      setReservations(reservationData);
+    } catch (error) {
+      console.error('Error fetching reservations:', error);
+    }
+  };
 
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
