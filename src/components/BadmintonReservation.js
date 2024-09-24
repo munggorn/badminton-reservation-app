@@ -1,4 +1,4 @@
-import React, { useState , useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API_URL = 'https://badmindton-reservation-backend-48221d08d8e7.herokuapp.com/api'; 
@@ -32,9 +32,9 @@ const BadmintonReservation = () => {
       const response = await axios.get(`${API_URL}/reservations`);
       const reservationData = {};
       response.data.forEach(reservation => {
-        reservationData[`${reservation.courtId}-${reservation.timeSlot}`] = {
+        reservationData[`${reservation.courtId.courtNumber}-${reservation.timeSlot}`] = {
           id: reservation._id,
-          courtId: reservation.courtId,
+          courtId: reservation.courtId.courtNumber,
           timeSlot: reservation.timeSlot,
           name: reservation.userName,
           partyNames: reservation.partyNames
@@ -49,11 +49,8 @@ const BadmintonReservation = () => {
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
       try {
-        const courtResponse = await axios.get(`${API_URL}/courts/${selectedCourt}`);
-        const courtId = courtResponse.data._id;
-        
         const reservationData = {
-          courtId: courtId,
+          courtId: selectedCourt,
           userName: name,
           partyNames: partyNames,
           timeSlot: selectedTime
