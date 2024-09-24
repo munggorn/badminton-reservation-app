@@ -32,10 +32,10 @@ const BadmintonReservation = () => {
       const response = await axios.get(`${API_URL}/reservations`);
       const reservationData = {};
       response.data.forEach(reservation => {
-        const startTime = new Date(reservation.startTime);
-        const endTime = new Date(reservation.endTime);
-        const timeSlot = `${startTime.getHours()}:${startTime.getMinutes().toString().padStart(2, '0')} - ${endTime.getHours()}:${endTime.getMinutes().toString().padStart(2, '0')}`;
-        reservationData[`${reservation.courtId}-${timeSlot}`] = {
+        reservationData[`${reservation.courtId}-${reservation.timeSlot}`] = {
+          id: reservation._id,
+          courtId: reservation.courtId,
+          timeSlot: reservation.timeSlot,
           name: reservation.userName,
           partyNames: reservation.partyNames
         };
@@ -49,19 +49,22 @@ const BadmintonReservation = () => {
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
       try {
-        await axios.post(`${API_URL}/reservations`, {
-          court: selectedCourt,
-          timeSlot: selectedTime,
-          name,
-          partyNames
-        });
+        const reservationData = {
+          courtId: selectedCourt,
+          userName: name,
+          partyNames: partyNames,
+          timeSlot: selectedTime
+        };
+  
+        console.log('Sending reservation data:', reservationData);
+        await axios.post(`${API_URL}/reservations`, reservationData);
         await fetchReservations(); // Refresh reservations after creating a new one
         setName('');
         setPartyNames('');
         setSelectedCourt(null);
         setSelectedTime(null);
       } catch (error) {
-        console.error('Error creating reservation:', error);
+        console.error('Error creating reservation:', error.response?.data || error.message);
       }
     }
   };
