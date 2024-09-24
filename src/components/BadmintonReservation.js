@@ -49,8 +49,11 @@ const BadmintonReservation = () => {
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
       try {
+        const courtResponse = await axios.get(`${API_URL}/courts/${selectedCourt}`);
+        const courtId = courtResponse.data._id;
+        
         const reservationData = {
-          courtId: selectedCourt,
+          courtId: courtId,
           userName: name,
           partyNames: partyNames,
           timeSlot: selectedTime
