@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = 'https://badmindton-reservation-backend-48221d08d8e7.herokuapp.com/api'; 
+const API_URL = 'https://badminton-reservation-backend.onrender.com/api'; 
 
 const BadmintonReservation = () => {
   const [name, setName] = useState('');
