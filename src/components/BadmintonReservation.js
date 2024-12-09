@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { socket, createReservation, getReservations } from '../services/api';
 
 const BadmintonReservation = () => {
@@ -8,7 +8,9 @@ const BadmintonReservation = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [reservations, setReservations] = useState({});
   const [hoverInfo, setHoverInfo] = useState(null);
-  const [error, setError] = useState(null); // Add this state at the top with other states
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   const courts = [1, 2, 3, 4];
   const timeSlots = [
     '10:00 - 11:30',
@@ -21,51 +23,13 @@ const BadmintonReservation = () => {
     '20:30 - 22:00'
   ];
 
-  useEffect(() => {
-    // Initial fetch
-    fetchReservations();
-    
-    // Set up interval to periodically refresh data
-    const refreshInterval = setInterval(fetchReservations, 30000); // Refresh every 30 seconds
-    
-    // Socket event listeners
-    socket.on('reservationsReset', () => {
-      console.log('Reservations have been reset');
-      fetchReservations();
-    });
-  
-    socket.on('newReservation', (data) => {
-      console.log('New reservation received:', data);
-      fetchReservations();
-    });
-    
-    socket.on('deletedReservation', () => {
-      console.log('Reservation deleted');
-      fetchReservations();
-    });
-  
-    // Reconnection handling
-    socket.on('connect', () => {
-      console.log('Socket reconnected - refetching data');
-      fetchReservations();
-    });
-  
-    // Cleanup
-    return () => {
-      clearInterval(refreshInterval);
-      socket.off('reservationsReset');
-      socket.off('newReservation');
-      socket.off('deletedReservation');
-      socket.off('connect');
-    };
-  }, []);
-
-  const fetchReservations = async () => {
+  const fetchReservations = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await getReservations();
       const reservationData = {};
       
-      // First, initialize all slots as available
+      // Initialize all slots as available
       courts.forEach(court => {
         timeSlots.forEach(slot => {
           const key = `${court}-${slot}`;
@@ -73,75 +37,109 @@ const BadmintonReservation = () => {
         });
       });
       
-      // Then update with actual reservations
-      response.data.forEach(reservation => {
-        const courtNumber = reservation.courtId.courtNumber || reservation.courtId;
-        const key = `${courtNumber}-${reservation.timeSlot}`;
-        reservationData[key] = {
-          id: reservation._id,
-          courtId: courtNumber,
-          timeSlot: reservation.timeSlot,
-          name: reservation.userName,
-          partyNames: reservation.partyNames
-        };
-      });
+      // Update with actual reservations
+      if (response.data && Array.isArray(response.data)) {
+        response.data.forEach(reservation => {
+          if (reservation && reservation.courtId) {
+            const courtNumber = typeof reservation.courtId === 'object' ? 
+              reservation.courtId.courtNumber : reservation.courtId;
+            const key = `${courtNumber}-${reservation.timeSlot}`;
+            reservationData[key] = {
+              id: reservation._id,
+              courtId: courtNumber,
+              timeSlot: reservation.timeSlot,
+              name: reservation.userName,
+              partyNames: reservation.partyNames
+            };
+          }
+        });
+      }
       
       setReservations(reservationData);
+      setError(null);
     } catch (error) {
       console.error('Error fetching reservations:', error);
       setError('Failed to load reservations. Please refresh the page.');
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [courts, timeSlots]);
 
-  
+  useEffect(() => {
+    // Initial fetch
+    fetchReservations();
+    
+    // Set up periodic refresh
+    const refreshInterval = setInterval(fetchReservations, 30000);
+    
+    // Socket event listeners for real-time updates
+    const handleUpdate = () => {
+      console.log('Reservation update received - fetching new data');
+      fetchReservations();
+    };
+
+    socket.on('reservationsReset', handleUpdate);
+    socket.on('newReservation', handleUpdate);
+    socket.on('deletedReservation', handleUpdate);
+    socket.on('connect', handleUpdate);
+
+    // Cleanup
+    return () => {
+      clearInterval(refreshInterval);
+      socket.off('reservationsReset', handleUpdate);
+      socket.off('newReservation', handleUpdate);
+      socket.off('deletedReservation', handleUpdate);
+      socket.off('connect', handleUpdate);
+    };
+  }, [fetchReservations]);
+
   const handleReservation = async () => {
-    if (name && partyNames && selectedCourt && selectedTime) {
-      try {
-        setError(null);
-        const reservationData = {
-          courtId: parseInt(selectedCourt),
-          userName: name.trim(),
-          partyNames: partyNames.trim(),
-          timeSlot: selectedTime
-        };
-  
-        console.log('Preparing to send reservation:', reservationData);
-        const response = await createReservation(reservationData);
-        console.log('Reservation successful:', response.data);
-        
-        // Emit a socket event to notify other clients
-        socket.emit('newReservation', response.data);
-        
-        // Immediately update local state
-        const newReservations = {
-          ...reservations,
-          [`${selectedCourt}-${selectedTime}`]: {
-            id: response.data._id,
-            courtId: selectedCourt,
-            timeSlot: selectedTime,
-            name: name,
-            partyNames: partyNames
-          }
-        };
-        setReservations(newReservations);
-        
-        // Clear the form
-        setName('');
-        setPartyNames('');
-        setSelectedCourt(null);
-        setSelectedTime(null);
-        
-        alert('Reservation successful!');
-      } catch (error) {
-        console.error('Reservation failed:', error);
-        setError(error.response?.data?.message || 'Failed to make reservation. Please try again.');
-        alert('Failed to make reservation: ' + (error.response?.data?.message || 'Please try again.'));
-      }
+    if (!name || !partyNames || !selectedCourt || !selectedTime) {
+      setError('Please fill in all fields and select a court and time.');
+      return;
+    }
+
+    try {
+      setError(null);
+      const reservationData = {
+        courtId: parseInt(selectedCourt),
+        userName: name.trim(),
+        partyNames: partyNames.trim(),
+        timeSlot: selectedTime
+      };
+
+      const response = await createReservation(reservationData);
+      
+      // Update local state optimistically
+      const newReservations = {
+        ...reservations,
+        [`${selectedCourt}-${selectedTime}`]: {
+          id: response.data._id,
+          courtId: selectedCourt,
+          timeSlot: selectedTime,
+          name: name,
+          partyNames: partyNames
+        }
+      };
+      setReservations(newReservations);
+      
+      // Reset form
+      setName('');
+      setPartyNames('');
+      setSelectedCourt(null);
+      setSelectedTime(null);
+      
+      alert('Reservation successful!');
+    } catch (error) {
+      console.error('Reservation failed:', error);
+      setError(error.response?.data?.message || 'Failed to make reservation. Please try again.');
+      // Refresh reservations to ensure consistency
+      fetchReservations();
     }
   };
 
   const isReserved = (court, slot) => {
-    return reservations[`${court}-${slot}`];
+    return reservations[`${court}-${slot}`] !== null;
   };
 
   const handleCellClick = (court, time) => {
@@ -162,6 +160,14 @@ const BadmintonReservation = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
+      {isLoading && (
+        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <p className="text-lg font-semibold">Loading reservations...</p>
+          </div>
+        </div>
+      )}
+
       <header className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-blue-600 mb-2">Badminton Court Reservation</h1>
         <p className="text-gray-600">Book your court quickly and easily</p>
