@@ -30,16 +30,18 @@ const BadmintonReservation = () => {
 
   const fetchReservations = async () => {
       try {
-        const response = await axios.get(`${API_URL}/reservations`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await axios.get(`${API_URL}/reservations`);
         const reservationData = {};
+        
+        // Add console.log to debug the response
+        console.log('Reservation response:', response.data);
+        
         response.data.forEach(reservation => {
-          reservationData[`${reservation.courtId.courtNumber}-${reservation.timeSlot}`] = {
+          // Handle both possible data structures
+          const courtNumber = reservation.courtId?.courtNumber || reservation.courtId;
+          reservationData[`${courtNumber}-${reservation.timeSlot}`] = {
             id: reservation._id,
-            courtId: reservation.courtId.courtNumber,
+            courtId: courtNumber,
             timeSlot: reservation.timeSlot,
             name: reservation.userName,
             partyNames: reservation.partyNames
@@ -55,18 +57,15 @@ const BadmintonReservation = () => {
     if (name && partyNames && selectedCourt && selectedTime) {
       try {
         const reservationData = {
-          courtId: selectedCourt,
+          courtId: selectedCourt,  // This should be just the court number
           userName: name,
           partyNames: partyNames,
           timeSlot: selectedTime
         };
   
-        await axios.post(`${API_URL}/reservations`, reservationData, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        await fetchReservations();
+        console.log('Sending reservation data:', reservationData);
+        await axios.post(`${API_URL}/reservations`, reservationData);
+        await fetchReservations(); // Refresh reservations after creating a new one
         setName('');
         setPartyNames('');
         setSelectedCourt(null);
