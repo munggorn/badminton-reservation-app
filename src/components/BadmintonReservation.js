@@ -53,25 +53,40 @@ const BadmintonReservation = () => {
     }
   };
 
+  const [error, setError] = useState(null); // Add this state at the top with other states
+  
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
       try {
+        setError(null); // Clear any previous errors
         const reservationData = {
           courtId: parseInt(selectedCourt),
           userName: name.trim(),
           partyNames: partyNames.trim(),
           timeSlot: selectedTime
         };
-
-        console.log('Sending reservation data:', reservationData);
-        await createReservation(reservationData);
-        await fetchReservations();
+  
+        console.log('Preparing to send reservation:', reservationData);
+        const response = await createReservation(reservationData);
+        console.log('Reservation successful:', response.data);
+        
+        // Emit a socket event to notify other clients
+        socket.emit('newReservation', response.data);
+        
+        await fetchReservations(); // Refresh the reservations
+        
+        // Clear the form
         setName('');
         setPartyNames('');
         setSelectedCourt(null);
         setSelectedTime(null);
+        
+        // Show success message (you can add a success state if needed)
+        alert('Reservation successful!');
       } catch (error) {
-        console.error('Error creating reservation:', error);
+        console.error('Reservation failed:', error);
+        setError(error.response?.data?.message || 'Failed to make reservation. Please try again.');
+        alert('Failed to make reservation: ' + (error.response?.data?.message || 'Please try again.'));
       }
     }
   };
