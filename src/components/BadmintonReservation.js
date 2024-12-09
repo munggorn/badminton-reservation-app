@@ -29,23 +29,27 @@ const BadmintonReservation = () => {
   }, []);
 
   const fetchReservations = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/reservations`);
-      const reservationData = {};
-      response.data.forEach(reservation => {
-        reservationData[`${reservation.courtId.courtNumber}-${reservation.timeSlot}`] = {
-          id: reservation._id,
-          courtId: reservation.courtId.courtNumber,
-          timeSlot: reservation.timeSlot,
-          name: reservation.userName,
-          partyNames: reservation.partyNames
-        };
-      });
-      setReservations(reservationData);
-    } catch (error) {
-      console.error('Error fetching reservations:', error);
-    }
-  };
+      try {
+        const response = await axios.get(`${API_URL}/reservations`, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        const reservationData = {};
+        response.data.forEach(reservation => {
+          reservationData[`${reservation.courtId.courtNumber}-${reservation.timeSlot}`] = {
+            id: reservation._id,
+            courtId: reservation.courtId.courtNumber,
+            timeSlot: reservation.timeSlot,
+            name: reservation.userName,
+            partyNames: reservation.partyNames
+          };
+        });
+        setReservations(reservationData);
+      } catch (error) {
+        console.error('Error fetching reservations:', error);
+      }
+    };
 
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
@@ -57,8 +61,11 @@ const BadmintonReservation = () => {
           timeSlot: selectedTime
         };
   
-        console.log('Sending reservation data:', reservationData);
-        await axios.post(`${API_URL}/reservations`, reservationData);
+        await axios.post(`${API_URL}/reservations`, reservationData, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         await fetchReservations();
         setName('');
         setPartyNames('');
