@@ -8,7 +8,7 @@ const BadmintonReservation = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [reservations, setReservations] = useState({});
   const [hoverInfo, setHoverInfo] = useState(null);
-
+  const [error, setError] = useState(null); // Add this state at the top with other states
   const courts = [1, 2, 3, 4];
   const timeSlots = [
     '10:00 - 11:30',
@@ -53,7 +53,7 @@ const BadmintonReservation = () => {
     }
   };
 
-  const [error, setError] = useState(null); // Add this state at the top with other states
+
   
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
@@ -183,6 +183,12 @@ const BadmintonReservation = () => {
           <p><span className="font-semibold">Time:</span> {hoverInfo.slot}</p>
           <p><span className="font-semibold">Reserved by:</span> {hoverInfo.name}</p>
           <p><span className="font-semibold">Party:</span> {hoverInfo.partyNames}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+          {error}
         </div>
       )}
 
