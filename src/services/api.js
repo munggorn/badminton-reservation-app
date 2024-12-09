@@ -24,13 +24,34 @@ export const socket = io(BASE_URL, {
 });
 
 export const getCourts = () => api.get('/courts');
-export const createReservation = (reservationData) => api.post('/reservations', reservationData);
+
+export const createReservation = async (reservationData) => {
+  console.log('Sending reservation data to API:', reservationData);
+  try {
+    const response = await api.post('/reservations', reservationData);
+    console.log('Reservation response:', response.data);
+    return response;
+  } catch (error) {
+    console.error('Reservation error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    throw error;
+  }
+};
+
 export const getReservations = () => api.get('/reservations');
 
 api.interceptors.response.use(
   response => response,
   error => {
-    console.error("API Error:", error.response ? error.response.data : error.message);
+    console.error("API Error:", {
+      message: error.message,
+      data: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers
+    });
     return Promise.reject(error);
   }
 );
