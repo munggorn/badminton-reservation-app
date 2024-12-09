@@ -1,8 +1,8 @@
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const API_URL = 'https://badminton-reservation-backend.onrender.com/api';
-const SOCKET_URL = 'https://badminton-reservation-backend.onrender.com';
+const API_URL = 'https://badminton-reservation-59c4db5dc0dc.herokuapp.com/api';
+const SOCKET_URL = 'https://badminton-reservation-59c4db5dc0dc.herokuapp.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
