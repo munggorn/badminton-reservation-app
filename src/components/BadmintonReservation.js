@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { io } from 'socket.io-client';
-
-const API_URL = 'https://badminton-reservation-59c4db5dc0dc.herokuapp.com/api';
+import { socket, createReservation, getReservations } from '../services/api';
 
 const BadmintonReservation = () => {
   const [name, setName] = useState('');
@@ -11,7 +8,6 @@ const BadmintonReservation = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [reservations, setReservations] = useState({});
   const [hoverInfo, setHoverInfo] = useState(null);
-  const [socket, setSocket] = useState(null);
 
   const courts = [1, 2, 3, 4];
   const timeSlots = [
@@ -25,46 +21,22 @@ const BadmintonReservation = () => {
     '20:30 - 22:00'
   ];
 
-  // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(API_URL.replace('/api', ''), {
-      reconnectionDelay: 1000,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      transports: ['websocket'],
-      agent: false,
-      upgrade: false,
-      rejectUnauthorized: false
+    fetchReservations();
+    
+    socket.on('reservationsReset', () => {
+      console.log('Reservations have been reset');
+      fetchReservations();
     });
 
-    setSocket(newSocket);
-
     return () => {
-      if (newSocket) {
-        newSocket.disconnect();
-      }
+      socket.off('reservationsReset');
     };
   }, []);
 
-  // Handle socket events and fetch initial reservations
-  useEffect(() => {
-    if (socket) {
-      fetchReservations();
-      
-      socket.on('reservationsReset', () => {
-        console.log('Reservations have been reset');
-        fetchReservations();
-      });
-
-      return () => {
-        socket.off('reservationsReset');
-      };
-    }
-  }, [socket]);
-
   const fetchReservations = async () => {
     try {
-      const response = await axios.get(`${API_URL}/reservations`);
+      const response = await getReservations();
       const reservationData = {};
       response.data.forEach(reservation => {
         reservationData[`${reservation.courtId}-${reservation.timeSlot}`] = {
@@ -92,14 +64,14 @@ const BadmintonReservation = () => {
         };
 
         console.log('Sending reservation data:', reservationData);
-        await axios.post(`${API_URL}/reservations`, reservationData);
+        await createReservation(reservationData);
         await fetchReservations();
         setName('');
         setPartyNames('');
         setSelectedCourt(null);
         setSelectedTime(null);
       } catch (error) {
-        console.error('Error creating reservation:', error.response?.data || error.message);
+        console.error('Error creating reservation:', error);
       }
     }
   };
