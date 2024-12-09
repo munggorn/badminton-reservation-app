@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-
-const socket = io(API_URL.replace('/api', '')); // Remove '/api' from the URL for socket connection
 const API_URL = 'https://badminton-reservation-backend.onrender.com/api'; 
+const socket = io(API_URL.replace('/api', '')); // Remove '/api' from the URL for socket connection
+
 
 const BadmintonReservation = () => {
   const [name, setName] = useState('');
