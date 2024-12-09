@@ -1,7 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 
-const API_URL = 'https://badmindton-reservation-backend-48221d08d8e7.herokuapp.com/api'; 
+const API_URL = 'https://badminton-reservation-59c4db5dc0dc.herokuapp.com/api';
+
+// Move these constants outside the component
+const COURTS = [1, 2, 3, 4];
+const TIME_SLOTS = [
+  '10:00 - 11:30',
+  '11:30 - 13:00',
+  '13:00 - 14:30',
+  '14:30 - 16:00',
+  '16:00 - 17:30',
+  '17:30 - 19:00',
+  '19:00 - 20:30',
+  '20:30 - 22:00'
+];
 
 const BadmintonReservation = () => {
   const [name, setName] = useState('');
@@ -10,18 +23,6 @@ const BadmintonReservation = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [reservations, setReservations] = useState({});
   const [hoverInfo, setHoverInfo] = useState(null);
-
-  const courts = [1, 2, 3, 4];
-  const timeSlots = [
-    '10:00 - 11:30',
-    '11:30 - 13:00',
-    '13:00 - 14:30',
-    '14:30 - 16:00',
-    '16:00 - 17:30',
-    '17:30 - 19:00',
-    '19:00 - 20:30',
-    '20:30 - 22:00'
-  ];
 
   useEffect(() => {
     fetchReservations();
@@ -58,7 +59,7 @@ const BadmintonReservation = () => {
   
         console.log('Sending reservation data:', reservationData);
         await axios.post(`${API_URL}/reservations`, reservationData);
-        await fetchReservations(); // Refresh reservations after creating a new one
+        await fetchReservations();
         setName('');
         setPartyNames('');
         setSelectedCourt(null);
@@ -69,25 +70,26 @@ const BadmintonReservation = () => {
     }
   };
 
-  const isReserved = (court, slot) => {
+  // Memoize these functions to prevent recreating them on every render
+  const isReserved = useMemo(() => (court, slot) => {
     return reservations[`${court}-${slot}`];
-  };
+  }, [reservations]);
 
-  const handleCellClick = (court, time) => {
+  const handleCellClick = useMemo(() => (court, time) => {
     if (!isReserved(court, time)) {
       setSelectedCourt(court);
       setSelectedTime(time);
     }
-  };
+  }, [isReserved]);
 
-  const handleCellHover = (court, slot) => {
+  const handleCellHover = useMemo(() => (court, slot) => {
     const reservation = reservations[`${court}-${slot}`];
     if (reservation) {
       setHoverInfo({ court, slot, ...reservation });
     } else {
       setHoverInfo(null);
     }
-  };
+  }, [reservations]);
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
@@ -126,13 +128,13 @@ const BadmintonReservation = () => {
         <p className="mb-4 text-gray-600">Click on an available slot to select it for reservation. Hover over reserved slots to see details.</p>
         <div className="grid grid-cols-5 gap-2">
           <div className="font-bold"></div>
-          {courts.map(court => (
+          {COURTS.map(court => (
             <div key={court} className="font-bold text-center bg-gray-100 py-2 rounded">Court {court}</div>
           ))}
-          {timeSlots.map(slot => (
+          {TIME_SLOTS.map(slot => (
             <React.Fragment key={slot}>
               <div className="font-bold text-sm bg-gray-100 py-2 px-1 rounded">{slot}</div>
-              {courts.map(court => (
+              {COURTS.map(court => (
                 <div
                   key={`${court}-${slot}`}
                   className={`p-2 text-center cursor-pointer rounded transition duration-300 ${
