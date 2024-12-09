@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
+const socket = io(API_URL.replace('/api', '')); // Remove '/api' from the URL for socket connection
 const API_URL = 'https://badminton-reservation-backend.onrender.com/api'; 
 
 const BadmintonReservation = () => {
@@ -25,6 +27,15 @@ const BadmintonReservation = () => {
 
   useEffect(() => {
     fetchReservations();
+    socket.on('reservationsReset', () => {
+      console.log('Reservations have been reset');
+      fetchReservations(); // Refresh reservations when reset occurs
+    });
+
+    // Cleanup socket listener when component unmounts
+    return () => {
+      socket.off('reservationsReset');
+    };
   }, []);
 
   const fetchReservations = async () => {
