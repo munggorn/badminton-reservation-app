@@ -24,22 +24,33 @@ const BadmintonReservation = () => {
   useEffect(() => {
     fetchReservations();
     
+    // Listen for both reservation reset and new reservations
     socket.on('reservationsReset', () => {
       console.log('Reservations have been reset');
       fetchReservations();
     });
+  
+    socket.on('newReservation', (data) => {
+      console.log('New reservation received:', data);
+      fetchReservations();
+    });
 
-    return () => {
-      socket.off('reservationsReset');
-    };
-  }, []);
+  return () => {
+    socket.off('reservationsReset');
+    socket.off('newReservation');
+  };
+}, []);
 
   const fetchReservations = async () => {
     try {
       const response = await getReservations();
       const reservationData = {};
+      console.log('Fetched reservations:', response.data); // Add this log
       response.data.forEach(reservation => {
-        reservationData[`${reservation.courtId}-${reservation.timeSlot}`] = {
+        // Create a unique key for each reservation
+        const key = `${reservation.courtId}-${reservation.timeSlot}`;
+        console.log('Processing reservation:', key, reservation); // Add this log
+        reservationData[key] = {
           id: reservation._id,
           courtId: reservation.courtId,
           timeSlot: reservation.timeSlot,
@@ -47,18 +58,18 @@ const BadmintonReservation = () => {
           partyNames: reservation.partyNames
         };
       });
+      console.log('Processed reservation data:', reservationData); // Add this log
       setReservations(reservationData);
     } catch (error) {
       console.error('Error fetching reservations:', error);
     }
   };
 
-
   
   const handleReservation = async () => {
     if (name && partyNames && selectedCourt && selectedTime) {
       try {
-        setError(null); // Clear any previous errors
+        setError(null);
         const reservationData = {
           courtId: parseInt(selectedCourt),
           userName: name.trim(),
@@ -73,7 +84,18 @@ const BadmintonReservation = () => {
         // Emit a socket event to notify other clients
         socket.emit('newReservation', response.data);
         
-        await fetchReservations(); // Refresh the reservations
+        // Immediately update local state
+        const newReservations = {
+          ...reservations,
+          [`${selectedCourt}-${selectedTime}`]: {
+            id: response.data._id,
+            courtId: selectedCourt,
+            timeSlot: selectedTime,
+            name: name,
+            partyNames: partyNames
+          }
+        };
+        setReservations(newReservations);
         
         // Clear the form
         setName('');
@@ -81,7 +103,6 @@ const BadmintonReservation = () => {
         setSelectedCourt(null);
         setSelectedTime(null);
         
-        // Show success message (you can add a success state if needed)
         alert('Reservation successful!');
       } catch (error) {
         console.error('Reservation failed:', error);
