@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-const API_URL = 'https://badminton-reservation-59c4db5dc0dc.herokuapp.com/api'; 
-const socket = io(API_URL.replace('/api', '')); // Remove '/api' from the URL for socket connection
 
+const API_URL = 'https://badminton-reservation-59c4db5dc0dc.herokuapp.com/api';
 
 const BadmintonReservation = () => {
   const [name, setName] = useState('');
@@ -12,6 +11,7 @@ const BadmintonReservation = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [reservations, setReservations] = useState({});
   const [hoverInfo, setHoverInfo] = useState(null);
+  const [socket, setSocket] = useState(null);
 
   const courts = [1, 2, 3, 4];
   const timeSlots = [
@@ -25,25 +25,48 @@ const BadmintonReservation = () => {
     '20:30 - 22:00'
   ];
 
+  // Initialize socket connection
   useEffect(() => {
-    fetchReservations();
-    socket.on('reservationsReset', () => {
-      console.log('Reservations have been reset');
-      fetchReservations(); // Refresh reservations when reset occurs
+    const newSocket = io(API_URL.replace('/api', ''), {
+      reconnectionDelay: 1000,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      transports: ['websocket'],
+      agent: false,
+      upgrade: false,
+      rejectUnauthorized: false
     });
 
-    // Cleanup socket listener when component unmounts
+    setSocket(newSocket);
+
     return () => {
-      socket.off('reservationsReset');
+      if (newSocket) {
+        newSocket.disconnect();
+      }
     };
   }, []);
+
+  // Handle socket events and fetch initial reservations
+  useEffect(() => {
+    if (socket) {
+      fetchReservations();
+      
+      socket.on('reservationsReset', () => {
+        console.log('Reservations have been reset');
+        fetchReservations();
+      });
+
+      return () => {
+        socket.off('reservationsReset');
+      };
+    }
+  }, [socket]);
 
   const fetchReservations = async () => {
     try {
       const response = await axios.get(`${API_URL}/reservations`);
       const reservationData = {};
       response.data.forEach(reservation => {
-        // Just use courtId directly since it's not an object with courtNumber
         reservationData[`${reservation.courtId}-${reservation.timeSlot}`] = {
           id: reservation._id,
           courtId: reservation.courtId,
@@ -62,15 +85,15 @@ const BadmintonReservation = () => {
     if (name && partyNames && selectedCourt && selectedTime) {
       try {
         const reservationData = {
-          courtId: selectedCourt,
-          userName: name,
-          partyNames: partyNames,
+          courtId: parseInt(selectedCourt),
+          userName: name.trim(),
+          partyNames: partyNames.trim(),
           timeSlot: selectedTime
         };
-  
+
         console.log('Sending reservation data:', reservationData);
         await axios.post(`${API_URL}/reservations`, reservationData);
-        await fetchReservations(); // Refresh reservations after creating a new one
+        await fetchReservations();
         setName('');
         setPartyNames('');
         setSelectedCourt(null);
