@@ -11,7 +11,12 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // Add timeout
+  timeout: 10000,
+  // Add retry logic
+  retry: 3,
+  retryDelay: (retryCount) => {
+    return retryCount * 1000; // Time interval between retries
+  }
 });
 
 // Enhanced socket configuration
@@ -109,24 +114,29 @@ api.interceptors.request.use(
   }
 );
 
-api.interceptors.response.use(
-  response => {
-    console.log('API Response:', {
-      status: response.status,
-      data: response.data,
-      headers: response.headers
-    });
-    return response;
-  },
-  error => {
-    console.error('API Response Error:', {
-      message: error.message,
-      data: error.response?.data,
-      status: error.response?.status,
-      headers: error.response?.headers
-    });
-    return Promise.reject(error);
+api.interceptors.response.use(undefined, async (err) => {
+  const { config } = err;
+  if (!config || !config.retry) {
+    return Promise.reject(err);
   }
-);
+  
+  config.__retryCount = config.__retryCount || 0;
+  
+  if (config.__retryCount >= config.retry) {
+    return Promise.reject(err);
+  }
+  
+  config.__retryCount += 1;
+  console.log(`Retrying request (${config.__retryCount}/${config.retry})`);
+  
+  const backoff = new Promise(resolve => {
+    setTimeout(() => {
+      resolve();
+    }, config.retryDelay(config.__retryCount));
+  });
+  
+  await backoff;
+  return api(config);
+});
 
 export default api;
