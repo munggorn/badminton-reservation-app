@@ -43,14 +43,10 @@ const BadmintonReservation = () => {
       const response = await axios.get(`${API_URL}/reservations`);
       const reservationData = {};
       response.data.forEach(reservation => {
-        // Get court number whether courtId is an object or a direct value
-        const courtNumber = typeof reservation.courtId === 'object' 
-          ? reservation.courtId.courtNumber 
-          : reservation.courtId;
-  
-        reservationData[`${courtNumber}-${reservation.timeSlot}`] = {
+        // Just use courtId directly since it's not an object with courtNumber
+        reservationData[`${reservation.courtId}-${reservation.timeSlot}`] = {
           id: reservation._id,
-          courtId: courtNumber,
+          courtId: reservation.courtId,
           timeSlot: reservation.timeSlot,
           name: reservation.userName,
           partyNames: reservation.partyNames
