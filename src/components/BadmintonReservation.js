@@ -22,9 +22,13 @@ const BadmintonReservation = () => {
   ];
 
   useEffect(() => {
+    // Initial fetch
     fetchReservations();
     
-    // Listen for both reservation reset and new reservations
+    // Set up interval to periodically refresh data
+    const refreshInterval = setInterval(fetchReservations, 30000); // Refresh every 30 seconds
+    
+    // Socket event listeners
     socket.on('reservationsReset', () => {
       console.log('Reservations have been reset');
       fetchReservations();
@@ -34,34 +38,58 @@ const BadmintonReservation = () => {
       console.log('New reservation received:', data);
       fetchReservations();
     });
-
-  return () => {
-    socket.off('reservationsReset');
-    socket.off('newReservation');
-  };
-}, []);
+    
+    socket.on('deletedReservation', () => {
+      console.log('Reservation deleted');
+      fetchReservations();
+    });
+  
+    // Reconnection handling
+    socket.on('connect', () => {
+      console.log('Socket reconnected - refetching data');
+      fetchReservations();
+    });
+  
+    // Cleanup
+    return () => {
+      clearInterval(refreshInterval);
+      socket.off('reservationsReset');
+      socket.off('newReservation');
+      socket.off('deletedReservation');
+      socket.off('connect');
+    };
+  }, []);
 
   const fetchReservations = async () => {
     try {
       const response = await getReservations();
       const reservationData = {};
-      console.log('Fetched reservations:', response.data); // Add this log
+      
+      // First, initialize all slots as available
+      courts.forEach(court => {
+        timeSlots.forEach(slot => {
+          const key = `${court}-${slot}`;
+          reservationData[key] = null;
+        });
+      });
+      
+      // Then update with actual reservations
       response.data.forEach(reservation => {
-        // Create a unique key for each reservation
-        const key = `${reservation.courtId}-${reservation.timeSlot}`;
-        console.log('Processing reservation:', key, reservation); // Add this log
+        const courtNumber = reservation.courtId.courtNumber || reservation.courtId;
+        const key = `${courtNumber}-${reservation.timeSlot}`;
         reservationData[key] = {
           id: reservation._id,
-          courtId: reservation.courtId,
+          courtId: courtNumber,
           timeSlot: reservation.timeSlot,
           name: reservation.userName,
           partyNames: reservation.partyNames
         };
       });
-      console.log('Processed reservation data:', reservationData); // Add this log
+      
       setReservations(reservationData);
     } catch (error) {
       console.error('Error fetching reservations:', error);
+      setError('Failed to load reservations. Please refresh the page.');
     }
   };
 
