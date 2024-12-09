@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-const API_URL = 'https://badminton-reservation-backend.onrender.com/api'; 
+const API_URL = 'https://badminton-reservation-59c4db5dc0dc.herokuapp.com/api'; 
 const socket = io(API_URL.replace('/api', '')); // Remove '/api' from the URL for socket connection
 
 
